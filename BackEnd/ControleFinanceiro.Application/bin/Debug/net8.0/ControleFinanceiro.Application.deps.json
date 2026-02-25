@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "ControleFinanceiro.Application/1.0.0": {
+        "dependencies": {
+          "ControleFinanceiro.Domain": "1.0.0"
+        },
+        "runtime": {
+          "ControleFinanceiro.Application.dll": {}
+        }
+      },
+      "ControleFinanceiro.Domain/1.0.0": {
+        "runtime": {
+          "ControleFinanceiro.Domain.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ControleFinanceiro.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ControleFinanceiro.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

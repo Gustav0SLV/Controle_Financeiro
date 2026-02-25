@@ -1,0 +1,11 @@
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\bin\Debug\net8.0\ControleFinanceiro.Domain.deps.json
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\bin\Debug\net8.0\ControleFinanceiro.Domain.dll
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\bin\Debug\net8.0\ControleFinanceiro.Domain.pdb
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.AssemblyInfoInputs.cache
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.AssemblyInfo.cs
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.csproj.CoreCompileInputs.cache
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.dll
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\refint\ControleFinanceiro.Domain.dll
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ControleFinanceiro.Domain.pdb
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Domain\obj\Debug\net8.0\ref\ControleFinanceiro.Domain.dll

@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+
+# EF / DB
+*.db
+*.mdf
+*.ldf
+
+# Node
+node_modules/
+dist/
+build/
+
+# Env
+.env
+.env.local
+
+# IDE
+.vs/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

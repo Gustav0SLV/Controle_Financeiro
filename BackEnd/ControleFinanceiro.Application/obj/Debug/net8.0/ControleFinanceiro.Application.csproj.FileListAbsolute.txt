@@ -13,3 +13,4 @@ C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Application\o
 C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Application\obj\Debug\net8.0\refint\ControleFinanceiro.Application.dll
 C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Application\obj\Debug\net8.0\ControleFinanceiro.Application.pdb
 C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Application\obj\Debug\net8.0\ref\ControleFinanceiro.Application.dll
+C:\Projetos Pessoais\ControleFinanceiro\BackEnd\ControleFinanceiro.Application\obj\Debug\net8.0\ControleFinanceiro.Application.sourcelink.json

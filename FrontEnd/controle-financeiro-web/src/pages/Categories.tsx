@@ -1,175 +1,395 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { createCategory, deleteCategory, getCategories } from "../lib/api";
 import type { Category } from "../lib/api";
+import { EmptyState, ErrorAlert, LoadingState, SuccessAlert } from "../components/ui/Feedback";
+import { PageHeader } from "../components/ui/PageHeader";
 
-export default function Categories() {
+const API_BASE = "http://localhost:5284";
+const COLOR_PALETTE = ["#2563eb", "#16a34a", "#dc2626", "#7c3aed", "#0891b2", "#ea580c", "#0f766e", "#d946ef"];
+const CATEGORY_COLORS_STORAGE_KEY = "cfx.categoryColors";
+
+async function updateCategoryById(id: string, data: { name: string; type: 1 | 2 }) {
+  const response = await fetch(`${API_BASE}/api/categories/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...data }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Erro ao editar categoria.");
+  }
+}
+
+function fallbackColor(name: string) {
+  const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return COLOR_PALETTE[hash % COLOR_PALETTE.length];
+}
+
+function readStoredCategoryColors(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(CATEGORY_COLORS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredCategoryColors(colors: Record<string, string>) {
+  localStorage.setItem(CATEGORY_COLORS_STORAGE_KEY, JSON.stringify(colors));
+}
+
+export default function CategoriesPage() {
   const [items, setItems] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // Form
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<1 | 2>(2);
   const [name, setName] = useState("");
+  const [color, setColor] = useState("#2563eb");
+  const [search, setSearch] = useState("");
+  const [colorByCategoryId, setColorByCategoryId] = useState<Record<string, string>>(() => readStoredCategoryColors());
 
-  const grouped = useMemo(() => {
-    const income = items.filter((c) => c.type === 1).sort((a, b) => a.name.localeCompare(b.name));
-    const expense = items.filter((c) => c.type === 2).sort((a, b) => a.name.localeCompare(b.name));
-    return { income, expense };
-  }, [items]);
-
-  async function load() {
+  const clearMessages = useCallback(() => {
     setError("");
+    setSuccess("");
+  }, []);
+
+  const loadCategories = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await getCategories();
       setItems(data);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar categorias");
+      setColorByCategoryId((current) => {
+        const next = { ...readStoredCategoryColors(), ...current };
+        for (const item of data) {
+          next[item.id] = next[item.id] ?? fallbackColor(item.name);
+        }
+        saveStoredCategoryColors(next);
+        return next;
+      });
+    } catch (requestError: unknown) {
+      setError(requestError instanceof Error ? requestError.message : "Erro ao carregar categorias.");
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setError("");
-        setLoading(true);
-        const data = await getCategories();
-        if (!cancelled) setItems(data);
-      } catch (e: unknown) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro ao carregar categorias");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError("Nome é obrigatório.");
-      return;
-    }
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items
+      .filter((item) => (query ? item.name.toLowerCase().includes(query) : true))
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [items, search]);
 
-    setError("");
-
-    await createCategory({ name: trimmed, type });
-
+  const startCreate = useCallback(() => {
+    setEditingId(null);
+    setType(2);
     setName("");
-    await load();
-  }
+    setColor("#2563eb");
+    clearMessages();
+  }, [clearMessages]);
 
-  async function remove(id: string, label: string) {
-    if (!confirm(`Excluir categoria "${label}"?`)) return;
-
-    setError("");
-    try {
-      await deleteCategory(id);
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao excluir categoria");
-    }
-  }
-
-  return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: 24 }}>
-      <h1>Categorias</h1>
-
-      <form
-        onSubmit={submit}
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: 12,
-          padding: 14,
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 140px", gap: 12, alignItems: "end" }}>
-          <div>
-            <label style={{ display: "block", fontSize: 12, opacity: 0.75 }}>Tipo</label>
-            <select value={type} onChange={(e) => setType(Number(e.target.value) as 1 | 2)} style={{ padding: 10, width: "100%" }}>
-              <option value={1}>Receita</option>
-              <option value={2}>Despesa</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 12, opacity: 0.75 }}>Nome</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} style={{ padding: 10, width: "100%" }} placeholder="Ex: Mercado" />
-          </div>
-
-          <button type="submit" style={{ padding: "10px 14px", cursor: "pointer" }}>
-            Adicionar
-          </button>
-        </div>
-
-        {error && (
-          <div style={{ marginTop: 12, padding: 12, border: "1px solid #ffb3b3", background: "#ffecec", borderRadius: 8 }}>
-            ❌ {error}
-          </div>
-        )}
-      </form>
-
-      {loading && <div>Carregando...</div>}
-
-      {!loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <CategoryList
-            title="Receitas"
-            items={grouped.income}
-            onDelete={remove}
-          />
-          <CategoryList
-            title="Despesas"
-            items={grouped.expense}
-            onDelete={remove}
-          />
-        </div>
-      )}
-    </div>
+  const startEdit = useCallback(
+    (item: Category) => {
+      setEditingId(item.id);
+      setType(item.type);
+      setName(item.name);
+      setColor(colorByCategoryId[item.id] ?? fallbackColor(item.name));
+      clearMessages();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [clearMessages, colorByCategoryId]
   );
-}
 
-function CategoryList({
-  title,
-  items,
-  onDelete,
-}: {
-  title: string;
-  items: Category[];
-  onDelete: (id: string, label: string) => void;
-}) {
+  const submit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      clearMessages();
+
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        setError("Nome e obrigatorio.");
+        return;
+      }
+
+      try {
+        if (editingId) {
+          await updateCategoryById(editingId, { name: trimmedName, type });
+          saveStoredCategoryColors({ ...readStoredCategoryColors(), [editingId]: color });
+          setColorByCategoryId((current) => {
+            const next = { ...current, [editingId]: color };
+            saveStoredCategoryColors(next);
+            return next;
+          });
+          setSuccess("Categoria atualizada com sucesso.");
+        } else {
+          await createCategory({ name: trimmedName, type });
+          setSuccess("Categoria criada com sucesso.");
+        }
+
+        await loadCategories();
+
+        setName("");
+        setEditingId(null);
+      } catch (requestError: unknown) {
+        setError(requestError instanceof Error ? requestError.message : "Erro ao salvar categoria.");
+      }
+    },
+    [clearMessages, name, type, editingId, loadCategories]
+  );
+
+  const remove = useCallback(
+    async (id: string, label: string) => {
+      if (!window.confirm(`Excluir categoria "${label}"?`)) return;
+      clearMessages();
+      try {
+        await deleteCategory(id);
+        setSuccess("Categoria excluida com sucesso.");
+        await loadCategories();
+        if (editingId === id) startCreate();
+      } catch (requestError: unknown) {
+        setError(requestError instanceof Error ? requestError.message : "Erro ao excluir categoria.");
+      }
+    },
+    [clearMessages, loadCategories, editingId, startCreate]
+  );
+
+  const typeLabel = type === 1 ? "Receita" : "Despesa";
+
   return (
-    <div style={{ border: "1px solid #ddd", borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ padding: 12, fontWeight: "bold", borderBottom: "1px solid #eee" }}>{title}</div>
+    <div className="cf-page cfx-cat">
+      <style>{`
+        .cfx-cat {
+          --cat-bg: linear-gradient(155deg, #f8fbff 0%, #f4f6fa 45%, #eef3f8 100%);
+          --cat-card: #ffffff;
+          --cat-border: #e8edf4;
+          --cat-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+          min-height: 100%;
+          background: var(--cat-bg);
+          border-radius: 1rem;
+          padding: 1.2rem;
+        }
+        .cfx-cat .cfx-block {
+          background: var(--cat-card);
+          border: 1px solid var(--cat-border);
+          box-shadow: var(--cat-shadow);
+          border-radius: 16px;
+        }
+        .cfx-cat .cfx-preview {
+          border-radius: 12px;
+          border: 1px dashed #d6deeb;
+          background: #f8fbff;
+          padding: 0.9rem;
+        }
+        .cfx-cat .cfx-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          display: inline-block;
+          margin-right: 0.35rem;
+          vertical-align: middle;
+        }
+        .cfx-cat .cfx-table-wrap {
+          max-height: 560px;
+          overflow: auto;
+        }
+        .cfx-cat .cfx-footer {
+          margin-top: 1.1rem;
+          text-align: center;
+          color: #64748b;
+          font-size: 0.84rem;
+        }
+        .cfx-cat .cfx-footer a {
+          color: #2563eb;
+          text-decoration: none;
+        }
+        .cfx-cat .cfx-footer a:hover {
+          text-decoration: underline;
+        }
+        @media (max-width: 991.98px) {
+          .cfx-cat {
+            padding: 0.6rem;
+            border-radius: 0.75rem;
+          }
+        }
+      `}</style>
 
-      {items.length === 0 ? (
-        <div style={{ padding: 12 }}>Nenhuma categoria.</div>
-      ) : (
-        items.map((c) => (
-          <div
-            key={c.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: 12,
-              borderTop: "1px solid #eee",
-            }}
-          >
-            <div>{c.name}</div>
-            <button onClick={() => onDelete(c.id, c.name)}>Excluir</button>
+      <PageHeader title="Categorias" subtitle="Gestao organizada de categorias de receita e despesa." />
+
+      <ErrorAlert message={error} />
+      <SuccessAlert message={success} />
+
+      <div className="row g-3">
+        <div className="col-12 col-xl-4">
+          <div className="cfx-block p-3 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h2 className="h6 m-0">{editingId ? "Editar categoria" : "Nova categoria"}</h2>
+              {editingId ? (
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={startCreate}>
+                  Novo
+                </button>
+              ) : null}
+            </div>
+
+            <form onSubmit={(event) => void submit(event)}>
+              <div className="mb-3">
+                <label htmlFor="categoryType" className="form-label">
+                  Tipo
+                </label>
+                <select
+                  id="categoryType"
+                  className="form-select"
+                  value={type}
+                  onChange={(event) => setType(Number(event.target.value) as 1 | 2)}
+                >
+                  <option value={1}>Receita</option>
+                  <option value={2}>Despesa</option>
+                </select>
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="categoryName" className="form-label">
+                  Nome
+                </label>
+                <input
+                  id="categoryName"
+                  className="form-control"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Ex: Mercado"
+                />
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="categoryColor" className="form-label">
+                  Cor
+                </label>
+                <input
+                  id="categoryColor"
+                  className="form-control form-control-color w-100"
+                  type="color"
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                />
+              </div>
+
+              <div className="cfx-preview mb-3">
+                <p className="small text-secondary mb-1">Pre-visualizacao</p>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div>
+                    <span className="cfx-dot" style={{ backgroundColor: color }} />
+                    <span className="fw-semibold">{name.trim() || "Nome da categoria"}</span>
+                  </div>
+                  <span className={`badge ${type === 1 ? "text-bg-success" : "text-bg-danger"}`}>{typeLabel}</span>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary w-100">
+                {editingId ? "Salvar alteracoes" : "Adicionar categoria"}
+              </button>
+            </form>
           </div>
-        ))
-      )}
+        </div>
+
+        <div className="col-12 col-xl-8">
+          <div className="cfx-block p-3 h-100">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 className="h6 m-0">Lista de categorias</h2>
+              <span className="badge text-bg-light">{filteredItems.length} itens</span>
+            </div>
+
+            <div className="mb-3">
+              <input
+                className="form-control"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por nome da categoria"
+              />
+            </div>
+
+            {loading ? <LoadingState /> : null}
+
+            {!loading && !filteredItems.length ? (
+              <EmptyState message="Nenhuma categoria encontrada. Crie sua primeira categoria no painel ao lado." />
+            ) : (
+              <div className="table-responsive cfx-table-wrap">
+                <table className="table align-middle cf-table">
+                  <thead>
+                    <tr>
+                      <th>Categoria</th>
+                      <th>Tipo</th>
+                      <th>Cor</th>
+                      <th className="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((item) => {
+                      const itemColor = colorByCategoryId[item.id] ?? fallbackColor(item.name);
+                      return (
+                        <tr key={item.id}>
+                          <td className="fw-semibold">{item.name}</td>
+                          <td>
+                            <span className={`badge ${item.type === 1 ? "text-bg-success" : "text-bg-danger"}`}>
+                              {item.type === 1 ? "Receita" : "Despesa"}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="d-inline-flex align-items-center">
+                              <span className="cfx-dot" style={{ backgroundColor: itemColor }} />
+                              <span className="small text-secondary">{itemColor}</span>
+                            </span>
+                          </td>
+                          <td className="text-end">
+                            <div className="btn-group btn-group-sm">
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                title="Editar"
+                                aria-label="Editar"
+                                onClick={() => startEdit(item)}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger"
+                                title="Excluir"
+                                aria-label="Excluir"
+                                onClick={() => void remove(item.id, item.name)}
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="cfx-footer">
+        Criado por: Gustavo Soares | LinkedIn:{" "}
+        <a href="https://www.linkedin.com/in/gustavoslv/" target="_blank" rel="noreferrer">
+          https://www.linkedin.com/in/gustavoslv/
+        </a>
+      </div>
     </div>
   );
 }

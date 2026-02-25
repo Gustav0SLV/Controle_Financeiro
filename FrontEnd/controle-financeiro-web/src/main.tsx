@@ -5,6 +5,8 @@ import Layout from "./Layout";
 import Overview from "./pages/Overview";
 import Transactions from "./pages/Transactions";
 import Categories from "./pages/Categories";
+import "./index.css";
+import "./styles/finance.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -1,0 +1,27 @@
+.cf-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.5rem;
+}
+
+.cf-progress-thin {
+  height: 0.55rem;
+}
+
+.cf-progress-goal {
+  height: 0.8rem;
+}
+
+.cf-card-hover {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.cf-card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.5rem 1rem rgba(17, 24, 39, 0.12);
+}
+
+.cf-table td,
+.cf-table th {
+  vertical-align: middle;
+}
